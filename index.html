@@ -191,9 +191,9 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
 </main><script>(function(){
   var b=document.getElementById('hide');
   var on=false;
-  try{ on = localStorage.getItem('cp1q-hide')==='1'; }catch(e){}
+  try{ on = localStorage.getItem('cp1q-quiz-physiology')!=='0'; }catch(e){}
   function set(v){ on=v; document.body.classList.toggle('hide-ans',v); b.setAttribute('aria-pressed',v?'true':'false');
-    b.textContent=v?'Show answers':'Hide answers'; try{localStorage.setItem('cp1q-hide',v?'1':'0');}catch(e){} }
+    b.textContent=v?'Show answers':'Hide answers'; try{localStorage.setItem('cp1q-quiz-physiology',v?'1':'0');}catch(e){} }
   set(on);
   b.addEventListener('click',function(){ set(!on); });
   document.getElementById('rehide').addEventListener('click',function(){
@@ -371,4 +371,119 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
   if(on(c)) c.click();
   sync();
 })();</script>
+
+<style id="qz-css">.q.qz > ol.opts > li{cursor:pointer;padding:3px 7px;margin:2px -7px;border:1px solid transparent;border-radius:6px;transition:background .12s,border-color .12s}
+.q.qz.lq > ol.opts > li{padding-left:calc(1.35em + 7px)}
+.q.qz:not(.qz-done) > ol.opts > li:hover{background:var(--panel,#F2F5F7);border-color:var(--rule-2,#C3CDD4)}
+.q.qz > ol.opts > li:focus-visible{outline:2px solid var(--accent,#1B5E5A);outline-offset:1px}
+.q.qz > ol.opts > li.qz-sel{background:var(--blue-soft,#E8EEF8);border-color:var(--blue,#2D4F8A)}
+.q.qz > ol.opts > li.qz-key{background:var(--accent-soft,#E4EFEC);border-color:var(--accent,#1B5E5A);font-weight:600}
+.q.qz > ol.opts > li.qz-wrong{background:var(--red-soft,#FBE9E7);border-color:var(--red,#9B2C2C);text-decoration:line-through;text-decoration-thickness:1px}
+.q.qz.qz-done > ol.opts > li{cursor:default}
+.q.qz.qz-done > ol.opts > li:not(.qz-key):not(.qz-wrong){opacity:.6}
+.qz-verdict{margin:8px 0 2px;font-family:var(--sans,system-ui,sans-serif);font-size:.9rem}
+.qz-ok .qz-verdict b{color:var(--accent,#1B5E5A)}
+.qz-no .qz-verdict b{color:var(--red,#9B2C2C)}
+.qz-again,.qz-check{font-family:var(--sans,system-ui,sans-serif);font-size:.8rem;font-weight:600;background:none;color:var(--ink-2,#48555F);border:1px solid var(--rule-2,#C3CDD4);border-radius:6px;padding:3px 10px;margin-left:8px;cursor:pointer}
+.qz-check{margin:8px 0 0;color:var(--ink,#141A1F)}
+.qz-check:disabled{opacity:.45;cursor:default}
+.qz-again:hover,.qz-check:not(:disabled):hover{border-color:var(--accent,#1B5E5A);color:var(--accent,#1B5E5A)}
+@media print{.qz-verdict,.qz-check{display:none!important}}
+</style><script id="qz-js">(function(){
+  // Click an option to answer: marks it correct or incorrect, highlights the keyed option, and opens the answer + why.
+  var KEYLET=/^\s*\(?\s*([A-Za-z])\s*\)?((?:\s*(?:,|&|and)\s*\(?\s*[A-Za-z]\s*\)?)*)\s*(?:[.):]|$)/;
+  var LILET=/^\s*\(?\s*([A-Za-z])\s*(?:[.):\-–]+\s*|$)/;
+  var STRIP=/^\s*[•·]?\s*(?:\(?\s*(?:[A-Za-z]{1,2}|\d{1,2})\s*[.):\-–]+|\d{1,2}\s+(?=\D))\s*/;
+  function norm(t){ return t.replace(/\s+/g,' ').trim().toLowerCase(); }
+  function body(t){ return norm(t.replace(STRIP,'')); }
+  function ansText(q){
+    var a=q.querySelector('.reveal > .ans'); if(!a) return '';
+    var c=a.cloneNode(true); c.querySelectorAll('.lab').forEach(function(l){ l.remove(); });
+    return c.textContent.trim();
+  }
+  function keyOf(q,lis){
+    var ans=ansText(q); if(!ans) return null;
+    var lets=lis.map(function(li){ var m=li.textContent.match(LILET); return m?m[1].toUpperCase():null; });
+    if(lets.some(function(l){ return !l; }) || new Set(lets).size!==lets.length) lets=lis.map(function(_,i){ return String.fromCharCode(65+i); });
+    var m=ans.match(KEYLET);
+    if(m){
+      var want=[m[1]].concat((m[2]||'').match(/[A-Za-z]/g)||[]).map(function(x){ return x.toUpperCase(); });
+      var idx=want.map(function(w){ return lets.indexOf(w); });
+      if(idx.every(function(i){ return i>=0; })) return idx;
+    }
+    var a=body(ans), b=lis.map(function(li){ return body(li.textContent); }), hit;
+    hit=b.map(function(t,i){ return t===a?i:-1; }).filter(function(i){ return i>=0; });
+    if(hit.length===1) return hit;
+    if(a.length>=6){ hit=b.map(function(t,i){ return t.length>=6 && (t.indexOf(a)===0 || a.indexOf(t)===0)?i:-1; }).filter(function(i){ return i>=0; }); if(hit.length===1) return hit; }
+    return null;
+  }
+  function letter(lis,i){ var m=lis[i].textContent.match(LILET); return m?m[1].toUpperCase():String.fromCharCode(65+i); }
+  function grade(q,picked){
+    var lis=q._lis, key=q._key, ok=picked.length===key.length && picked.every(function(i){ return key.indexOf(i)>=0; });
+    q.classList.add('qz-done'); q.classList.add(ok?'qz-ok':'qz-no');
+    lis.forEach(function(li,i){
+      li.classList.remove('qz-sel');
+      if(key.indexOf(i)>=0) li.classList.add('qz-key');
+      if(picked.indexOf(i)>=0) li.classList.add(key.indexOf(i)>=0?'qz-right':'qz-wrong');
+      li.setAttribute('aria-disabled','true');
+    });
+    var v=q.querySelector('.qz-verdict');
+    var names=key.map(function(i){ return letter(lis,i); }).join(' and ');
+    v.innerHTML=(ok?'<b>✓ Correct</b>':'<b>✗ Incorrect</b> · the answer is '+names)+' <button type="button" class="qz-again">Try again</button>';
+    v.hidden=false;
+    var c=q.querySelector('.qz-check'); if(c) c.hidden=true;
+    q.classList.add('open');
+    var ex=q.querySelector('.reveal > details.expl');
+    if(ex && !q.querySelector('.reveal > .why') && !ex.open){ ex.open=true; ex.setAttribute('data-qz',''); }
+  }
+  function reset(q){
+    q.classList.remove('qz-done','qz-ok','qz-no','open');
+    q._lis.forEach(function(li){ li.classList.remove('qz-sel','qz-key','qz-right','qz-wrong'); li.removeAttribute('aria-disabled'); });
+    var v=q.querySelector('.qz-verdict'); v.hidden=true; v.innerHTML='';
+    var c=q.querySelector('.qz-check'); if(c){ c.hidden=false; c.disabled=true; }
+    var ex=q.querySelector('.reveal > details.expl[data-qz]'); if(ex){ ex.open=false; ex.removeAttribute('data-qz'); }
+  }
+  var n=0;
+  document.querySelectorAll('article.q').forEach(function(q){
+    var ol=q.querySelector(':scope > ol.opts'); if(!ol) return;
+    var lis=[].slice.call(ol.children).filter(function(li){ return li.tagName==='LI'; });
+    if(lis.length<2) return;
+    var key=keyOf(q,lis); if(!key) return;
+    q._lis=lis; q._key=key; q.classList.add('qz'); n++;
+    if(key.length>1) q.classList.add('qz-multi');
+    lis.forEach(function(li){ li.setAttribute('role','button'); li.tabIndex=0; });
+    var v=document.createElement('div'); v.className='qz-verdict'; v.hidden=true; v.setAttribute('role','status');
+    if(key.length>1){
+      var c=document.createElement('button'); c.type='button'; c.className='qz-check'; c.disabled=true;
+      c.textContent='Check answer (choose '+key.length+')'; ol.after(c); c.after(v);
+    } else ol.after(v);
+  });
+  document.documentElement.setAttribute('data-qz',n);
+  function act(e){
+    var t=e.target;
+    var again=t.closest && t.closest('.qz-again');
+    if(again){ e.stopPropagation(); e.preventDefault(); reset(again.closest('.q')); return; }
+    var chk=t.closest && t.closest('.qz-check');
+    if(chk){ e.stopPropagation(); e.preventDefault(); var q=chk.closest('.q');
+      grade(q,q._lis.map(function(li,i){ return li.classList.contains('qz-sel')?i:-1; }).filter(function(i){ return i>=0; })); return; }
+    var li=t.closest && t.closest('.qz > ol.opts > li'); if(!li) return;
+    var q=li.closest('.q');
+    e.stopPropagation(); e.preventDefault();
+    if(q.classList.contains('qz-done')) return;
+    if(window.getSelection && String(window.getSelection()).length>2) return;
+    var i=q._lis.indexOf(li);
+    if(q.classList.contains('qz-multi')){
+      li.classList.toggle('qz-sel');
+      q.querySelector('.qz-check').disabled=!q.querySelector('.qz-sel');
+    } else grade(q,[i]);
+  }
+  // capture phase: runs before the page's tap-to-reveal handler, which would otherwise toggle the answer open
+  document.addEventListener('click',act,true);
+  document.addEventListener('keydown',function(e){
+    if((e.key==='Enter'||e.key===' ') && e.target.closest && e.target.closest('.qz > ol.opts > li')){ act(e); }
+  },true);
+  var rh=document.getElementById('rehide');
+  if(rh) rh.addEventListener('click',function(){ document.querySelectorAll('.q.qz-done').forEach(reset); });
+})();
+</script>
 </body></html>
