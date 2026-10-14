@@ -389,6 +389,8 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
 .qz-check:disabled{opacity:.45;cursor:default}
 .qz-again:hover,.qz-check:not(:disabled):hover{border-color:var(--accent,#1B5E5A);color:var(--accent,#1B5E5A)}
 @media print{.qz-verdict,.qz-check{display:none!important}}
+body.lqonly section.sec > :not(.sechead):not(details.learn){display:none!important}
+body.lqonly section.sec > .sechead .secbtn{display:none!important}
 </style><script id="qz-js">(function(){
   // Click an option to answer: marks it correct or incorrect, highlights the keyed option, and opens the answer + why.
   var KEYLET=/^\s*\(?\s*([A-Za-z])\s*\)?((?:\s*(?:,|&|and)\s*\(?\s*[A-Za-z]\s*\)?)*)\s*(?:[.):]|$)/;
@@ -497,6 +499,27 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
   },true);
   var rh=document.getElementById('rehide');
   if(rh) rh.addEventListener('click',function(){ document.querySelectorAll('.q.qz-done').forEach(reset); });
+})();
+(function(){
+  // "Learning questions only": each section shows just its heading and its Learning questions block.
+  var ctl=document.querySelector('.controls'); if(!ctl || !document.querySelector('details.learn')) return;
+  var KEY='cp1q-lqonly-'+location.pathname.replace(/\W+/g,'');
+  var b=document.createElement('button'); b.className='btn'; b.id='lqonly'; b.type='button';
+  b.textContent='Learning questions only'; b.setAttribute('aria-pressed','false');
+  var star=document.getElementById('staronly');
+  if(star){ var sp=star.previousSibling && star.previousSibling.nodeType===3; ctl.insertBefore(b,star); if(sp) ctl.insertBefore(document.createTextNode(' '),star); }
+  else ctl.appendChild(b);
+  var on=false;
+  function set(v){
+    on=v; document.body.classList.toggle('lqonly',v); b.setAttribute('aria-pressed',v?'true':'false');
+    document.querySelectorAll('details.learn').forEach(function(d){
+      if(v && !d.open){ d.open=true; d.setAttribute('data-lqo',''); }
+      else if(!v && d.hasAttribute('data-lqo')){ d.open=false; d.removeAttribute('data-lqo'); }
+    });
+    try{ localStorage.setItem(KEY,v?'1':'0'); }catch(e){}
+  }
+  try{ if(localStorage.getItem(KEY)==='1') set(true); }catch(e){}
+  b.addEventListener('click',function(){ set(!on); window.scrollTo(0,0); });
 })();
 </script>
 </body></html>
