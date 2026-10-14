@@ -407,8 +407,9 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
     if(lets.some(function(l){ return !l; }) || new Set(lets).size!==lets.length) lets=lis.map(function(_,i){ return String.fromCharCode(65+i); });
     // a key note that says "Confirmed on re-check; correct answer: X" overrides the printed source key
     var fl=[].map.call(q.querySelectorAll('.reveal .flag'),function(f){ return f.textContent; }).join(' ');
-    var cf=fl.match(/Confirmed on re-check; correct answer:\s*\(?\s*([A-Za-z])\s*[.)]/);
-    if(cf){ var ci=lets.indexOf(cf[1].toUpperCase()); if(ci>=0) return [ci]; }
+    var cf=fl.match(/Confirmed on re-check; correct answer:\s*(\(?\s*[A-Za-z]\s*\)?(?:\s*(?:,|&|and)\s*\(?\s*[A-Za-z]\s*\)?)*)\s*[.)]/);
+    if(cf){ var ci=(cf[1].match(/[A-Za-z]+/g)||[]).filter(function(w){ return w.length===1; }).map(function(w){ return lets.indexOf(w.toUpperCase()); });
+      if(ci.length && ci.every(function(i){ return i>=0; })) return ci; }
     var m=ans.match(KEYLET);
     if(m){
       var want=[m[1]].concat((m[2]||'').match(/[A-Za-z]/g)||[]).map(function(x){ return x.toUpperCase(); });
