@@ -355,4 +355,14 @@ body.staronly .lqsub:not(:has(.starred)),body.staronly details.learn:not(:has(.s
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
 })();
 </script>
+<script>(function(){
+  function on(b){ return b && b.getAttribute('aria-pressed')==='true'; }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('#hyb,#opc'); if(!t) return;
+    var o=document.getElementById(t.id==='hyb'?'opc':'hyb');
+    if(!on(t) && on(o)) o.click();
+  },true);
+  var h=document.getElementById('hyb'), c=document.getElementById('opc');
+  if(on(h) && on(c)) c.click();
+})();</script>
 </body></html>
